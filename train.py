@@ -1,14 +1,10 @@
-import argparse
 import time
-import os
-
-import random
+import argparse
 import collections
 from turtle import pd
-import numpy as np
-import torch
 from tqdm import tqdm
 from torchtext.vocab import Vectors
+import torchtext
 from datasets import load_dataset
 from model import DAE, VAE, AAE
 from vocab import Vocab
@@ -19,20 +15,10 @@ from batchify import get_batches
 parser = argparse.ArgumentParser()
 # Path arguments
 parser.add_argument('--dataset', type=str,
-                    # default='sst2',
+                    default='sst2',
                     # default='ag_news',
-                    default='imdb',
+                    # default='imdb',
                     help='path to training file')
-parser.add_argument('--train', metavar='FILE',
-                    # default='data/yelp/train.txt',
-                    default='data/imdb.csv',
-                    # default='data/rt/rt.txt',
-                    help='path to training file')
-parser.add_argument('--valid', metavar='FILE',
-                    # default='data/yelp/valid.txt',
-                    default='data/imdb.csv',
-                    # default='data/rt/rt.txt',
-                    help='path to validation file')
 parser.add_argument('--save-dir', default='checkpoints', help='directory to save checkpoints and outputs')
 parser.add_argument('--load-model', default='', help='path to load checkpoint if specified')
 
@@ -96,10 +82,8 @@ def evaluate(model, batches):
 
 
 def main(args):
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cpu')
     print(device)
 
     args.save_dir = f'checkpoints/{args.dataset}_{args.method}_{args.eps}_{args.pretrained_vectors}/'
@@ -108,17 +92,6 @@ def main(args):
     log_file = os.path.join(args.save_dir, 'log.txt')
     logging(str(args), log_file)
 
-    # def tokenize(label, line):
-    #     return line.split()
-    #
-    # tokens = []
-    # for label, line in dataset:
-    #     tokens += tokenize(label, line)
-
-    # Prepare data
-    # train_sents = load_sent(args.train)
-    # valid_sents = random.sample(train_sents, int(len(train_sents) * 0.3))
-    # train_sents = load_imdb(args.train)
     train_sents = []
     if args.dataset == 'sst2':
         dataset = load_dataset(path='sst2', cache_dir='./data')
@@ -141,14 +114,14 @@ def main(args):
     logging('# train sents {}, tokens {}'.format(len(train_sents), sum(len(s) for s in train_sents)), log_file)
     logging('# valid sents {}, tokens {}'.format(len(valid_sents), sum(len(s) for s in valid_sents)), log_file)
 
-    vocab_file = os.path.join('./vocab', f'{args.dataset}.txt')
+    vocab_file = os.path.join('./vocabulary', f'{args.dataset}.txt')
     if not os.path.isfile(vocab_file):
         Vocab.build(train_sents, vocab_file, args.vocab_size)
     vocab = Vocab(vocab_file)
     logging('# vocab size {}'.format(vocab.size), log_file)
-    exit()
+
     # Use pre-trained word embedding
-    pretrained_vectors = Vectors(name=args.pretrained_vectors)
+    pretrained_vectors = Vectors(name=f'./embeddings/{args.pretrained_vectors}')
     data = []
     f = open(vocab_file, 'r', encoding="utf-8")
     while True:
