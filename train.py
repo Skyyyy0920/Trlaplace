@@ -1,4 +1,5 @@
 import time
+import logging
 import argparse
 import collections
 from turtle import pd
@@ -83,14 +84,14 @@ def evaluate(model, batches):
 
 def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device('cpu')
     print(device)
 
     args.save_dir = f'checkpoints/{args.dataset}_{args.method}_{args.eps}_{args.pretrained_vectors}/'
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
     log_file = os.path.join(args.save_dir, 'log.txt')
-    logging(str(args), log_file)
+    logging.info(str(args), log_file)
+    exit()
 
     train_sents = []
     if args.dataset == 'sst2':
@@ -180,7 +181,7 @@ def main(args):
         if not best_val_loss or valid_meters['loss'].avg < best_val_loss:
             log_output += ' | saving model'
             ckpt = {'args': args, 'model': model.state_dict()}
-            torch.save(ckpt, os.path.join(args.save_dir, 'model.pt'))
+            # torch.save(ckpt, os.path.join(args.save_dir, 'model.pt'))
             best_val_loss = valid_meters['loss'].avg
         logging(log_output, log_file)
     logging('Done training', log_file)

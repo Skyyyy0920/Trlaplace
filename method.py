@@ -8,7 +8,6 @@ from torch.nn.functional import normalize
 from scipy.stats import bernoulli
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device('cpu')
 
 
 # Baseline
