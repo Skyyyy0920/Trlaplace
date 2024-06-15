@@ -70,19 +70,20 @@ class DAE(TextModel):
         # input = self.drop(self.embed(input) + torch.Tensor(np.random.laplace(0, scale, 300)).to(device))
         # input = self.drop(self.embed(input))
         batch_embs = self.embed(input)
-        # assert method in ['gau', 'lap', 'trlap', 'mdp', 'maha', 'privemb']
         if self.method == 'gau':
-            input = Gaussian(batch_embs, self.eps, embs_dim=300, C=0.005)
+            input = Gaussian(batch_embs, self.eps, C=0.005)
         elif self.method == 'lap':
-            input = Laplacian(batch_embs, self.eps, embs_dim=300, C=0.005)
+            input = Laplacian(batch_embs, self.eps, C=0.005)
         elif self.method == 'trlap':
-            input = TrLaplacian(batch_embs, self.eps, embs_dim=300, C=0.005)
+            input = TrLaplacian(batch_embs, self.eps, C=0.005)
         elif self.method == 'mdp':
-            input = ori_metric_dp(batch_embs, self.eps, embs_dim=300)
+            input = ori_metric_dp(batch_embs, self.eps)
         elif self.method == 'maha':
-            input = mahalanobis(batch_embs, self.eps, embs_dim=300, lamb=0.5)
+            input = mahalanobis(batch_embs, self.eps, lamb=0.5)
         elif self.method == 'privemb':
-            input = privemb(batch_embs, self.eps, embs_dim=300, beta=0.5, delta=0.1 ** 6)
+            input = privemb(batch_embs, self.eps, beta=0.5, delta=0.1 ** 6)
+        else:
+            raise ValueError("no such method")
 
         input = self.drop(input)
 

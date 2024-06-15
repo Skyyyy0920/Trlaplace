@@ -13,10 +13,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Baseline
 # ----------------------------------------------------------------------------------------------------------------------------#
 # Local Metric DP
-def ori_metric_dp(batch_embs, eps, embs_dim=300):
+def ori_metric_dp(batch_embs, eps):
     # https://dl.acm.org/doi/pdf/10.1145/3336191.3371856   
     # Original Metric DP
     # MCMC Sampling
+    embs_dim = batch_embs.size(-1)
     v = MultivariateNormal(torch.zeros(embs_dim), torch.eye(embs_dim)).sample()
     v1 = normalize(v, p=2.0, dim=0)
     l = Gamma(torch.tensor([float(embs_dim)]), torch.tensor([float(eps)])).sample()
@@ -25,11 +26,12 @@ def ori_metric_dp(batch_embs, eps, embs_dim=300):
     return embs
 
 
-def mahalanobis(batch_embs, eps, embs_dim=300, lamb=1):
+def mahalanobis(batch_embs, eps, lamb=1):
     # https://arxiv.org/pdf/2010.11947.pdf 
     # Mahalanobis Mechanism, lamb is a tuning parameter
 
     # MCMC Sampling
+    embs_dim = batch_embs.size(-1)
     v = MultivariateNormal(torch.zeros(embs_dim), torch.eye(embs_dim)).sample(
         [batch_embs.shape[0] * batch_embs.shape[1]]).to(device)
     v1 = normalize(v, p=2.0, dim=0)
@@ -61,9 +63,10 @@ def vickrey(batch_embs, embs):
     return embs
 
 
-def privemb(batch_embs, eps, embs_dim=300, beta=0.5, delta=0.1 ** 6):
+def privemb(batch_embs, eps, beta=0.5, delta=0.1 ** 6):
     # https://aclanthology.org/2021.trustnlp-1.3.pdf
     # PRIVEMB, para and beta are tuning parameters
+    embs_dim = batch_embs.size(-1)
     para = 1
     m1 = np.sqrt(np.log(embs_dim)) + np.sqrt(np.log(1 / delta))
     m = int(para * np.power(m1, 2) / (beta * beta))
@@ -88,10 +91,10 @@ def privemb(batch_embs, eps, embs_dim=300, beta=0.5, delta=0.1 ** 6):
 
 
 # LDP
-def Gaussian(batch_embs, eps, embs_dim=300, C=0.005):
+def Gaussian(batch_embs, eps, C=0.005):
     # calculate sensitivity
     # C is a tuning parameter
-    C = 0.005
+    embs_dim = batch_embs.size(-1)
     d = 2 * C * np.sqrt(embs_dim)
     alpha = eps / d
     scale = 1 / alpha
@@ -101,9 +104,10 @@ def Gaussian(batch_embs, eps, embs_dim=300, C=0.005):
     return embs
 
 
-def Laplacian(batch_embs, eps, embs_dim=300, C=0.005):
+def Laplacian(batch_embs, eps, C=0.005):
     # calculate sensitivity
     # C is a tuning parameter
+    embs_dim = batch_embs.size(-1)
     d = 2 * C * np.sqrt(embs_dim)
     alpha = eps / d
     scale = 1 / alpha
@@ -113,32 +117,34 @@ def Laplacian(batch_embs, eps, embs_dim=300, C=0.005):
     return embs
 
 
-def TrLaplacian(batch_embs, eps, embs_dim=300, C=0.005):
-    # embs_dim = 1700
-    # embs_dim = 500
+def TrLaplacian(batch_embs, eps, C=0.005):
     ## MCMC sampling Trancated Laplacian
     # C is a tuning parameter
     # ε≤4∆1∆∞
-    d1 = 2 * C * np.sqrt(embs_dim)
-    dinf = 2 * C
-    alpha = eps / d1
-    scale = 1.0 / alpha
-    A = -scale * np.log(1 - (2 * eps / np.sqrt(embs_dim)))
-    mean = 0
+    embs_dim = batch_embs.size(-1)  # 获取嵌入的维度
+    if eps > 8.6:
+        embs_dim = 500 if eps == 10 else 1700
+    d1 = 2 * C * np.sqrt(embs_dim)  # 计算 d1 参数
+    dinf = 2 * C  # 计算 dinf 参数
+    alpha = eps / d1  # 计算 alpha 参数
+    scale = 1.0 / alpha  # 计算 scale 参数
+    A = -scale * np.log(1 - (2 * eps / np.sqrt(embs_dim)))  # 计算截断参数 A
+    mean = 0  # 噪声的均值设为 0
+
     # MCMC
     r = []
     out = []
-    lower = -A
-    upper = A
+    lower = -A  # 截断下界
+    upper = A  # 截断上界
 
-    sgn = 2 * bernoulli.rvs(1, 0.5, 1000000) - 1
-    r = mean - scale * sgn * np.log(np.random.uniform(0, 1, 1000000))
-    mask1 = (r >= lower)
-    mask2 = (r <= upper)
-    mask = (mask1) & (mask2)
-    r_tr = r[mask]
-    out = r_tr[0:300]
+    sgn = 2 * bernoulli.rvs(1, 0.5, 1000000) - 1  # 生成一个由 1 和 -1 组成的数组
+    r = mean - scale * sgn * np.log(np.random.uniform(0, 1, 1000000))  # 生成拉普拉斯噪声
+    mask1 = (r >= lower)  # 生成的噪声大于下界的掩码
+    mask2 = (r <= upper)  # 生成的噪声小于上界的掩码
+    mask = (mask1) & (mask2)  # 同时满足上下界的掩码
+    r_tr = r[mask]  # 截断后的噪声
+    out = r_tr[:batch_embs.size(-1)]  # 取前 embs_dim 个截断后的噪声
 
-    embs = batch_embs + torch.Tensor(out).to(device)
+    embs = batch_embs + torch.Tensor(out).to(device)  # 将噪声添加到嵌入向量上
 
     return embs

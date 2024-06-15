@@ -1,4 +1,5 @@
 import random
+import logging
 import numpy as np
 import torch
 import pandas as pd
@@ -61,12 +62,20 @@ def write_z(z, path):
             f.write('\n')
 
 
-def logging(s, path, print_=True):
-    if print_:
-        print(s)
-    if path:
-        with open(path, 'a+', encoding="utf-8") as f:
-            f.write(s + '\n')
+def logging_config(save_dir):
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    logging.basicConfig(level=logging.INFO,
+                        format='[%(asctime)s %(levelname)s]%(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        filename=os.path.join(save_dir, f'running.log'))
+    console = logging.StreamHandler()  # Simultaneously output to console
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter(fmt='[%(asctime)s %(levelname)s]%(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+    logging.getLogger('').addHandler(console)
+    logging.getLogger('matplotlib.font_manager').disabled = True
 
 
 def lerp(t, p, q):
