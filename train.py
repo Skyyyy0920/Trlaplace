@@ -17,8 +17,8 @@ from batchify import get_batches
 parser = argparse.ArgumentParser()
 # Path arguments
 parser.add_argument('--dataset', type=str,
-                    default='sst2',
-                    # default='ag_news',
+                    # default='sst2',
+                    default='ag_news',
                     # default='imdb',
                     help='path to training file')
 parser.add_argument('--save-dir', default='checkpoints', help='directory to save checkpoints and outputs')
@@ -52,9 +52,9 @@ parser.add_argument('--eps', type=float,
                     default=10,
                     help='privacy budget epsilon')
 parser.add_argument('--pretrained_vectors', type=str,
-                    default='wiki-news-300d-1M.vec',
+                    # default='wiki-news-300d-1M.vec',
                     # default='glove.6B.300d.txt',
-                    # default='random',
+                    default='random',
                     help='pretrained_vectors')
 
 # Training arguments
@@ -140,7 +140,7 @@ def main(args):
         pretrained_vectors = Vectors(name=f'./embeddings/{args.pretrained_vectors}')
         weight_matrix = pretrained_vectors.get_vecs_by_tokens(list(df[0]))
     else:
-        weight_matrix = torch.randn(len(df[0]))
+        weight_matrix = torch.randn(len(df[0]), args.dim_emb)
 
     set_seed(args.seed)
     model = {'dae': DAE, 'vae': VAE, 'aae': AAE}[args.model_type](vocab, weight_matrix, args).to(device)
