@@ -59,13 +59,12 @@ parser.add_argument('--pretrained_vectors', type=str,
 
 # Training arguments
 parser.add_argument('--dropout', type=float, default=0.5, help='dropout probability (0 = no dropout)')
-parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
+parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 # parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
-parser.add_argument('--epochs', type=int, default=50, help='number of training epochs')
+parser.add_argument('--epochs', type=int, default=100, help='number of training epochs')
 parser.add_argument('--batch_size', type=int, default=1024)
 # Others
 parser.add_argument('--seed', type=int, default=42, help='random seed')
-parser.add_argument('--log-interval', type=int, default=100, help='report interval')
 
 
 def evaluate(model, batches):
@@ -155,7 +154,6 @@ def main(args):
     best_val_loss = None
     for epoch in tqdm(range(args.epochs)):
         start_time = time.time()
-        logging.info('-' * 80)
         model.train()
         weight = model.embed.weight.cpu().detach().numpy()
         train_embed = np.column_stack((np.array(df[0]), weight))
@@ -171,7 +169,7 @@ def main(args):
             for k, v in losses.items():
                 meters[k].update(v.item())
 
-            if (i_budget + 1) % args.log_interval == 0:
+            if (i_budget + 1) % 100 == 0:
                 log_output = '| epoch {:3d} | {:5d}/{:5d} batches |'.format(epoch + 1, i_budget + 1, len(indices))
                 for k, meter in meters.items():
                     log_output += ' {} {:.2f},'.format(k, meter.avg)
@@ -179,7 +177,6 @@ def main(args):
                 logging.info(log_output)
 
         valid_meters = evaluate(model, valid_batches)
-        logging.info('-' * 80)
         log_output = '| end of epoch {:3d} | time {:5.0f}s | valid'.format(epoch + 1, time.time() - start_time)
         for k, meter in valid_meters.items():
             log_output += ' {} {:.2f},'.format(k, meter.avg)
