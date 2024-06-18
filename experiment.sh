@@ -5,9 +5,9 @@ do
     do
         for k in 'gau' 'lap' 'mdp' 'maha' 'privemb' 'trlap';
         do
-            python3 train.py --dataset 'sst2' --eps $i --pretrained_vectors $j --method $k --dim_emb 300 --batch_size 2048
-            python3 train.py --dataset 'imdb' --eps $i --pretrained_vectors $j --method $k --dim_emb 300 --batch_size 512
-            python3 train.py --dataset 'ag_news' --eps $i --pretrained_vectors $j --method $k --dim_emb 300 --batch_size 2048
+            python3 train.py --dataset 'sst2' --eps $i --pretrained_vectors $j --method $k --dim_emb 300 --batch_size 1024
+            python3 train.py --dataset 'imdb' --eps $i --pretrained_vectors $j --method $k --dim_emb 300 --batch_size 2048
+            python3 train.py --dataset 'ag_news' --eps $i --pretrained_vectors $j --method $k --dim_emb 300 --batch_size 1024
         done
     done
 done

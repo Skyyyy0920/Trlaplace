@@ -85,62 +85,53 @@ def plot_history(history):
 
 results = []
 for data in ['ag_news', 'imdb', 'sst2']:
+    X, y = [], []
+    text = 'sentence' if data == 'sst2' else 'text'
+    dataset = load_dataset(path=data, cache_dir='./data')
+    for row in dataset['train']:
+        X.append(custom_standardization(row[text].strip()))
+        y.append(row['label'])
+    X = np.array(X)
+    y = np.array(y)
+
+    num_classes = len(dataset['train'].features['label'].names)
+    max_features = 10000
+    results_counter = Counter()
+    df = pd.DataFrame(X, columns=['text'])
+    print(df.head())
+    df['text'].str.split().apply(results_counter.update)
+    vocabulary = [key[0] for key in results_counter.most_common(max_features)]
+
+    tokenizer = Tokenizer(num_words=max_features)
+    tokenizer.fit_on_texts(vocabulary)
+
+    X = tokenizer.texts_to_sequences(df['text'])
+    X = pad_sequences(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+    print(len(X_train), len(X_val), len(X_test), len(y_train), len(y_val), len(y_test))
+    max_input_lenght = X.shape[1]
+
+    word_index = dict(zip(vocabulary, range(len(vocabulary))))
+    num_tokens = len(vocabulary) + 2
+    embedding_dim = 300
+
     for pretrained_vector in ['wiki-news-300d-1M.vec', 'glove.6B.300d.txt', 'random']:
         for eps in ['0.01', '0.1', '1.0', '10.0']:
             for method in ['gau', 'lap', 'trlap', 'mdp', 'maha', 'privemb']:
                 accuracies = []
+                logging_config('checkpoints')
+                path = f"./checkpoints/{data}_{method}_{eps}_{pretrained_vector}/fine_tune.txt"
+                if not os.path.exists(path):
+                    continue
+                embeddings_index = get_embeddings_index(path)
+                logging.info("Found %s word vectors." % len(embeddings_index))
+
                 for seed in [42, 43, 44, 45, 46]:
-                    X, y = [], []
-                    dataset = load_dataset(path=data, cache_dir='./data')
-                    for row in dataset['train']:
-                        X.append(custom_standardization(row['sentence'].strip()))
-                        y.append(row['label'])
-                    for row in dataset['validation']:
-                        X.append(custom_standardization(row['sentence'].strip()))
-                        y.append(row['label'])
-                    X = np.array(X)
-                    y = np.array(y)
-
-                    num_classes = len(dataset['train'].features['label'].names)
-                    max_features = 10000
-                    results = Counter()
-                    df = pd.DataFrame(X, columns=['text'])
-                    print(df.head())
-                    df['text'].str.split().apply(results.update)
-                    vocabulary = [key[0] for key in results.most_common(max_features)]
-
-                    tokenizer = Tokenizer(num_words=max_features)
-                    tokenizer.fit_on_texts(vocabulary)
-
-                    X = tokenizer.texts_to_sequences(df['text'])
-                    X = pad_sequences(X)
-
-                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-                    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
-                    print(len(X_train), len(X_val), len(X_test), len(y_train), len(y_val), len(y_test))
-                    max_input_lenght = X.shape[1]
-
-                    word_index = dict(zip(vocabulary, range(len(vocabulary))))
-                    num_tokens = len(vocabulary) + 2
-                    embedding_dim = 300
-
                     now_train = f'{data}_{method}_{eps}_{pretrained_vector}_{seed}'
-                    logging_config('checkpoints')
                     logging.info(now_train)
-                    path = f"./checkpoints/{now_train}/fine_tune.txt"
                     setup_seed(seed)
-                    if not os.path.exists(path):
-                        results.append({
-                            'data': data,
-                            'method': method,
-                            'eps': eps,
-                            'pretrained_vector': pretrained_vector,
-                            'accuracy': 0,
-                            'seed': seed
-                        })
-                        continue
-                    embeddings_index = get_embeddings_index(path)
-                    logging.info("Found %s word vectors." % len(embeddings_index))
 
                     hits, misses = 0, 0
                     # Prepare embedding matrix
