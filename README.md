@@ -1,5 +1,5 @@
 # Trlaplace
-This is the code implementation for our paper [*Private Language Models via Truncated Laplacian Mechanism (EMNLP 2024 oral)*](https://aclanthology.org/2024.emnlp-main.231/).
+This is the code implementation for our paper [*Private Language Models via Truncated Laplacian Mechanism (EMNLP-2024 oral)*](https://aclanthology.org/2024.emnlp-main.231/).
 
 ## Cite our work
 ```
